@@ -269,7 +269,7 @@ case class HttpRequest(method: HttpMethod = HttpMethods.GET,
   def withHeadersAndEntity(headers: List[HttpHeader], entity: HttpEntity) =
     if ((headers eq this.headers) && (entity eq this.entity)) this else copy(headers = headers, entity = entity)
 
-  def chunkedMessageStart: HttpMessageStart = ChunkedRequestStart(withEntity(HttpEntity.Empty))
+  def chunkedMessageStart: HttpMessageStart = ChunkedRequestStart(withEntity(entity))
 }
 
 /**
@@ -289,7 +289,7 @@ case class HttpResponse(status: StatusCode = StatusCodes.OK,
   def withEntity(entity: HttpEntity) = copy(entity = entity)
   def withHeadersAndEntity(headers: List[HttpHeader], entity: HttpEntity) = copy(headers = headers, entity = entity)
 
-  def chunkedMessageStart: HttpMessageStart = ChunkedResponseStart(withEntity(HttpEntity.Empty))
+  def chunkedMessageStart: HttpMessageStart = ChunkedResponseStart(withEntity(entity))
 }
 
 /**
