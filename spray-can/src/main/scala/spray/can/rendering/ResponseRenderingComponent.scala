@@ -38,7 +38,7 @@ private[can] trait ResponseRenderingComponent {
 
   def renderResponsePartRenderingContext(r: Rendering, ctx: ResponsePartRenderingContext,
                                          log: LoggingAdapter): Boolean = {
-    def renderResponseStart(response: HttpResponse): Connection = {
+    def renderResponseStart(response: HttpResponse, chunked: Boolean): Connection = {
       val manualContentHeadersAllowed =
         transparentHeadRequests && ctx.requestMethod == HttpMethods.HEAD && response.entity.isEmpty
 
@@ -51,8 +51,8 @@ private[can] trait ResponseRenderingComponent {
               connectionHeader
             }
             head match {
-              case _: `Content-Type` if !manualContentHeadersAllowed ⇒ logHeaderSuppressionWarning("the response Content-Type is set via the response's HttpEntity!")
-              case _: `Content-Length` if !manualContentHeadersAllowed ⇒ logHeaderSuppressionWarning()
+              case _: `Content-Type` if !manualContentHeadersAllowed && !chunked ⇒ logHeaderSuppressionWarning("the response Content-Type is set via the response's HttpEntity!")
+              case _: `Content-Length` if !manualContentHeadersAllowed && !chunked ⇒ logHeaderSuppressionWarning()
               case _: `Transfer-Encoding` ⇒ logHeaderSuppressionWarning()
               case _: `Date` ⇒ logHeaderSuppressionWarning()
               case _: `Server` ⇒ logHeaderSuppressionWarning()
@@ -81,7 +81,7 @@ private[can] trait ResponseRenderingComponent {
 
     def renderResponse(response: HttpResponse): Boolean = {
       import response._
-      val connectionHeader = renderResponseStart(response)
+      val connectionHeader = renderResponseStart(response, false)
       val close =
         ctx.requestProtocol match {
           case `HTTP/1.0` ⇒ if (connectionHeader eq null) {
@@ -102,7 +102,7 @@ private[can] trait ResponseRenderingComponent {
     }
 
     def renderChunkedResponseStart(response: HttpResponse, chunkless: Boolean): Boolean = {
-      renderResponseStart(response)
+      renderResponseStart(response, !chunkless)
       if (!chunkless) r ~~ `Transfer-Encoding` ~~ Chunked ~~ CrLf
       r ~~ CrLf
       if (ctx.requestMethod != HttpMethods.HEAD)
